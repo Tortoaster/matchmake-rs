@@ -425,6 +425,16 @@ dependencies = [
 [[package]]
 name = "matchmake-rs-client"
 version = "0.1.0"
+dependencies = [
+ "futures-channel",
+ "futures-util",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-tungstenite",
+ "tracing",
+ "tracing-subscriber",
+]
 
 [[package]]
 name = "memchr"

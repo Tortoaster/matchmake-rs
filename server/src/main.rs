@@ -8,6 +8,7 @@ use axum::routing::get;
 use axum::{Router, Server};
 use axum_extra::extract::cookie::Key;
 use futures_util::{SinkExt, StreamExt};
+use tracing::info;
 
 use crate::matchmaker::Matchmaker;
 use crate::player::Player;
@@ -61,7 +62,7 @@ async fn main() {
         .route(player::CREATE_SESSION_ENDPOINT, get(player::create_session))
         .with_state(state);
 
-    tracing::debug!("listening on http://{}", addr);
+    info!("listening on http://{}", addr);
     Server::bind(&addr)
         .serve(app.into_make_service())
         .await
