@@ -1,7 +1,7 @@
 use std::env;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
-use axum::extract::ws::{Message, WebSocket};
+use axum::extract::ws::WebSocket;
 use axum::extract::{FromRef, State, WebSocketUpgrade};
 use axum::response::IntoResponse;
 use axum::routing::get;
@@ -11,10 +11,8 @@ use futures_util::{SinkExt, StreamExt};
 use tracing::info;
 
 use crate::matchmaker::Matchmaker;
-use crate::player::Player;
 
 mod matchmaker;
-mod player;
 
 const ENV_HOST: &str = "HOST";
 const ENV_PORT: &str = "PORT";
@@ -59,7 +57,6 @@ async fn main() {
 
     let app = Router::new()
         .route("/connect", get(connect))
-        .route(player::CREATE_SESSION_ENDPOINT, get(player::create_session))
         .with_state(state);
 
     info!("listening on http://{}", addr);
@@ -69,22 +66,14 @@ async fn main() {
         .unwrap();
 }
 
-async fn connect(
-    ws: WebSocketUpgrade,
-    player: Player,
-    State(matchmaker): State<Matchmaker>,
-) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_socket(player, socket, matchmaker))
+async fn connect(ws: WebSocketUpgrade, State(matchmaker): State<Matchmaker>) -> impl IntoResponse {
+    ws.on_upgrade(move |socket| handle_socket(socket, matchmaker))
 }
 
-async fn handle_socket(player: Player, socket: WebSocket, matchmaker: Matchmaker) {
+async fn handle_socket(socket: WebSocket, matchmaker: Matchmaker) {
     let (mut send, recv) = socket.split();
 
-    let (player, mut recv) = matchmaker.find_match(player, recv).await;
-
-    send.send(Message::Text(format!("connected with {}", player)))
-        .await
-        .unwrap();
+    let mut recv = matchmaker.find_match(recv).await;
 
     while let Some(Ok(message)) = recv.next().await {
         send.send(message).await.unwrap();

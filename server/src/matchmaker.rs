@@ -3,15 +3,13 @@ use futures_util::stream::SplitStream;
 use lazy_static::lazy_static;
 use tokio::sync::Mutex;
 
-use crate::Player;
-
 lazy_static! {
-    static ref WAITING: Mutex<Option<(Player, SplitStream<WebSocket>)>> = Mutex::new(None);
+    static ref WAITING: Mutex<Option<SplitStream<WebSocket>>> = Mutex::new(None);
 }
 
 #[derive(Copy, Clone, Debug)]
 pub struct Matchmaker {
-    waiting: &'static Mutex<Option<(Player, SplitStream<WebSocket>)>>,
+    waiting: &'static Mutex<Option<SplitStream<WebSocket>>>,
 }
 
 impl Matchmaker {
@@ -19,16 +17,12 @@ impl Matchmaker {
         Matchmaker { waiting: &WAITING }
     }
 
-    pub async fn find_match(
-        &self,
-        player: Player,
-        recv: SplitStream<WebSocket>,
-    ) -> (Player, SplitStream<WebSocket>) {
+    pub async fn find_match(&self, recv: SplitStream<WebSocket>) -> SplitStream<WebSocket> {
         let mut lock = self.waiting.lock().await;
         if lock.is_some() {
             lock.take().unwrap()
         } else {
-            *lock = Some((player, recv));
+            *lock = Some(recv);
             drop(lock);
             todo!()
         }
